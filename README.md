@@ -9,9 +9,9 @@ Before you begin, ensure you have the following installed on your system:
 - [Python](https://www.python.org/downloads/) (3.7 or higher)
 
 1. **Download the Application:**
-   - Open a terminal such as command prompt and move to a new directory using the following command as an example:
+   - Open a terminal (e.g., Command Prompt) and navigate to your preferred installation directory using the following command as an example. Ensure you replace <user> with your current system user name:
      ```
-     cd C:\Users\<user>\Desktop\focusmode
+     cd C:\Users\<user>\Downloads 
      ```
    - Download the ZIP file of the application from the GitHub repository or clone it using the following command:
      ```
@@ -51,7 +51,7 @@ If you encounter any issues:
 - Check if your Python version is 3.7 or higher.
 - If the issue persists, please file an issue on the GitHub repository with a detailed description of the problem.
 
-## Features
+### Features
 
 - Customizable pomodoro timer settings.
 - Persistent settings saved across sessions.
@@ -59,14 +59,14 @@ If you encounter any issues:
 - Sleek, user-friendly, and customizable interface.
 - (Soon) Option to forcefully minimize distractions.
 
-## Credits
+### Credits
 
 - Lilpeanut167 has helped design the project.
 
-## Disclaimers
+### Disclaimers
 - This project is heavily in progress, and has multiple missing and broken features.
 - Further documentation will be created as this project progresses towards a full release.
 
-## License
+### License
 
 - This project is licensed under the Apache 2.0 License.  For more details, see [LICENSE](LICENSE).
