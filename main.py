@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from pomodoro import PomodoroTimer
+from sound_manager import SoundManager
 import threading
-import simpleaudio as sa
 import tkinter
 import tkinter.messagebox
 import customtkinter
@@ -22,26 +22,6 @@ import json
 import os
 import sys
 import time
-
-
-class SoundManager:
-    def __init__(self):
-        self.current_play_objects = {}
-        self.play_objects_lock = threading.Lock()
-
-    def play_sound(self, sound_file):
-        if sound_file and sound_file != "None":
-
-            def thread_function(file):
-                play_obj = sa.WaveObject.from_wave_file(file).play()
-                with self.play_objects_lock:
-                    self.current_play_objects[file] = play_obj
-                play_obj.wait_done()
-                with self.play_objects_lock:
-                    if file in self.current_play_objects:
-                        del self.current_play_objects[file]
-
-            threading.Thread(target=thread_function, args=(sound_file,)).start()
 
 
 class FocusModeApp:
@@ -53,13 +33,8 @@ class FocusModeApp:
         # Initialize main window
         self.window = customtkinter.CTk()
         # Path to the icon file
-        if os.name == "nt":
-            # Windows
-            self.window.iconbitmap("icons/icon.ico")
-        else:
-            # Other operating systems (untested)
-            icon_image = tk.PhotoImage(file="icons/icon.png")
-            self.window.iconphoto(True, icon_image)
+        self.set_window_icon()
+
         # Default settings
         self.default_settings = {
             "appearance_mode": "Dark",
@@ -91,7 +66,19 @@ class FocusModeApp:
         # Initialize the UI
         self.initialize_ui()
 
+    def set_window_icon(self):
+        # Set the window icon based on the operating system
+        if os.name == "nt":
+            # Windows
+            self.window.iconbitmap("icons/icon.ico")
+        else:
+            # Other operating systems (untested)
+            icon_image = tk.PhotoImage(file="icons/icon.png")
+            self.window.iconphoto(True, icon_image)
+
     def initialize_ui(self):
+        # Configure and initialize the user interface.
+
         # Configure main window
         self.window.title("Focus Mode")
         self.window.geometry("1100x580")
@@ -102,16 +89,18 @@ class FocusModeApp:
         self.window.grid_columnconfigure((2, 3), weight=0)
         self.window.grid_rowconfigure((0, 1, 2), weight=1)
 
+        # Set up sidebar and main area
         self.setup_sidebar()
         self.setup_main_area()
 
+        # Define behavior on window close
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        # Update scroll region and timer display
         self.update_scrollregion()
         self.update_timer_display()
 
-    def setup_sidebar(self):
-        # Create the sidebar canvas
+    def create_sidebar_canvas(self):
         self.sidebar_width = 200
         self.sidebar_bg_color = "#2b2b2b"
 
@@ -123,16 +112,15 @@ class FocusModeApp:
         )
         self.sidebar_canvas.pack(side="left", fill="y", expand=False)
 
-        # Create the scrollbar for the sidebar
+    def create_sidebar_scrollbar(self):
         self.sidebar_scrollbar = customtkinter.CTkScrollbar(
             self.window, command=self.sidebar_canvas.yview
         )
         self.sidebar_scrollbar.pack(side="left", fill="y")
 
-        # Configure the canvas scroll command
         self.sidebar_canvas.configure(yscrollcommand=self.sidebar_scrollbar.set)
 
-        # Create the frame to hold sidebar contents
+    def create_sidebar_frame(self):
         self.sidebar_frame = customtkinter.CTkFrame(
             master=self.sidebar_canvas,
             width=self.sidebar_width,
@@ -143,18 +131,13 @@ class FocusModeApp:
             (0, 0), window=self.sidebar_frame, anchor="nw", width=200
         )
 
-        # Bind the sidebar frame configure event to update the scroll region
-        self.sidebar_frame.bind("<Configure>", self.update_scrollregion)
+    def create_sidebar_widgets(self):
+        self.create_appearance_widgets()
+        self.create_color_theme_widgets()
+        self.create_noise_widgets()
+        self.create_pomodoro_sliders()
 
-        # Create sidebar widgets
-        self.sidebar_label = customtkinter.CTkLabel(
-            self.sidebar_frame,
-            text="Settings",
-            font=customtkinter.CTkFont(size=20, weight="bold"),
-        )
-        self.sidebar_label.pack(padx=20, pady=(20, 10))
-
-        # Appearance Mode Dropdown
+    def create_appearance_widgets(self):
         self.appearance_mode_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="Appearance Mode:", anchor="w"
         )
@@ -170,6 +153,7 @@ class FocusModeApp:
         )
         self.appearance_mode_optionmenu.pack(padx=20, pady=(10, 0), fill="x")
 
+    def create_color_theme_widgets(self):
         # Color Theme Dropdown
         self.color_theme_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="Color Theme:", anchor="w"
@@ -186,6 +170,7 @@ class FocusModeApp:
         )
         self.color_theme_optionmenu.pack(padx=20, pady=(10, 10), fill="x")
 
+    def create_noise_widgets(self):
         # Background Noise Dropdown
         self.noise_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="Background Noise:", anchor="w"
@@ -201,6 +186,13 @@ class FocusModeApp:
         self.noise_optionmenu.set(self.current_settings["background_noise"])
         self.noise_optionmenu.pack(padx=20, pady=(10, 10), fill="x")
 
+    def create_pomodoro_sliders(self):
+        self.create_work_time_widgets()
+        self.create_short_break_widgets()
+        self.create_long_break_widgets()
+        self.create_cycles_before_long_break_widgets()
+
+    def create_work_time_widgets(self):
         # Sliders for the Pomodoro settings
         # Work Time Slider
         self.work_time_label = customtkinter.CTkLabel(
@@ -220,6 +212,7 @@ class FocusModeApp:
             text=f"{self.timer.work_time // 60} minutes"
         )
 
+    def create_short_break_widgets(self):
         # Short Break Slider
         self.short_break_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="Short Break (minutes):"
@@ -238,6 +231,7 @@ class FocusModeApp:
             text=f"{self.timer.short_break // 60} minutes"
         )
 
+    def create_long_break_widgets(self):
         # Long Break Slider
         self.long_break_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="Long Break (minutes):"
@@ -256,6 +250,7 @@ class FocusModeApp:
             text=f"{self.timer.long_break // 60} minutes"
         )
 
+    def create_cycles_before_long_break_widgets(self):
         # Cycles Before Long Break Slider
         self.cycles_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="Cycles Before Long Break:"
@@ -275,22 +270,24 @@ class FocusModeApp:
         self.cycles_value_label.pack(padx=20, pady=(0, 10))
         self.cycles_value_label.configure(text=f"{self.timer.cycles_before_long_break}")
 
-    def setup_main_area(self):
-        # Get the current width and height of the window and calculate the content width
+    def setup_sidebar(self):
+        self.create_sidebar_canvas()
+        self.create_sidebar_scrollbar()
+        self.create_sidebar_frame()
+        self.create_sidebar_widgets()
+        self.sidebar_frame.bind("<Configure>", self.update_scrollregion)
+
+    def calculate_content_dimensions(self):
         self.window_width = self.window.winfo_width()
-        self.content_width = (
-            self.window_width - self.sidebar_width
-        )  # Width excluding the sidebar
+        self.content_width = self.window_width - self.sidebar_width
         self.button_width = 200
         self.button_height = 80
         self.button_spacing = 20
         self.vertical_center = 0.4
         self.total_buttons_width = (3 * self.button_width) + (2 * self.button_spacing)
-
-        # Calculate the horizontal center of the content area for the timer and buttons
         self.content_center_x = self.sidebar_width + (self.content_width / 2)
 
-        # Timer Display
+    def setup_timer_display(self):
         self.timer_display = customtkinter.CTkLabel(
             self.window, text="25:00", font=("Courier", 200)
         )
@@ -301,7 +298,7 @@ class FocusModeApp:
             anchor="center",
         )
 
-        # Label to display the cycles count
+    def setup_timer_state_label(self):
         self.timer_state_label = customtkinter.CTkLabel(
             self.window,
             text=f"Work Time | Cycle: {self.timer.current_cycle}",
@@ -311,81 +308,89 @@ class FocusModeApp:
             relx=0.4925, x=(self.sidebar_width / 2), rely=0.2, anchor="center"
         )
 
-        # Control Buttons
-        # Start Button
-        self.start_button = customtkinter.CTkButton(
+    def create_button(self, text, command, width, height, state="normal"):
+        button = customtkinter.CTkButton(
             self.window,
-            text="Start",
+            text=text,
             font=("Courier", 36),
-            command=self.start_or_resume_timer,
-            width=self.button_width,
-            height=self.button_height,
+            command=command,
+            width=width,
+            height=height,
+            state=state,
+        )
+        return button
+
+    def place_button(self, button, x, rely):
+        button.place(x=x, rely=rely, anchor="w")
+
+    def create_and_place_buttons(self):
+        # Start Button
+        self.start_button = self.create_button(
+            "Start", self.start_or_resume_timer, self.button_width, self.button_height
         )
         self.start_button_x = self.content_center_x - (self.total_buttons_width / 2)
-        self.start_button.place(
-            x=self.start_button_x, rely=self.vertical_center + 0.25, anchor="w"
+        self.place_button(
+            self.start_button, self.start_button_x, self.vertical_center + 0.25
         )
 
         # Stop Button
-        self.stop_button = customtkinter.CTkButton(
-            self.window,
-            text="Stop",
-            font=("Courier", 36),
-            command=self.stop_timer,
-            width=self.button_width,
-            height=self.button_height,
-            state="disabled",  # default for startup
+        self.stop_button = self.create_button(
+            "Stop",
+            self.stop_timer,
+            self.button_width,
+            self.button_height,
+            state="disabled",
         )
-        self.stop_button.place(
-            x=self.start_button_x + self.button_width + self.button_spacing,
-            rely=self.vertical_center + 0.25,
-            anchor="w",
+        self.place_button(
+            self.stop_button,
+            self.start_button_x + self.button_width + self.button_spacing,
+            self.vertical_center + 0.25,
         )
 
         # Reset Button
-        self.reset_button = customtkinter.CTkButton(
-            self.window,
-            text="Reset",
-            font=("Courier", 36),
-            command=self.reset_timer,
-            width=self.button_width,
-            height=self.button_height,
-            state="disabled",  # default for startup
+        self.reset_button = self.create_button(
+            "Reset",
+            self.reset_timer,
+            self.button_width,
+            self.button_height,
+            state="disabled",
         )
-        self.reset_button.place(
-            x=self.start_button_x + 2 * (self.button_width + self.button_spacing),
-            rely=self.vertical_center + 0.25,
-            anchor="w",
+        self.place_button(
+            self.reset_button,
+            self.start_button_x + 2 * (self.button_width + self.button_spacing),
+            self.vertical_center + 0.25,
         )
 
         # Cycle Counter Reset Button
-        self.cycle_reset_button = customtkinter.CTkButton(
-            self.window,
-            text="Reset Cycles",
-            font=("Courier", 36),
-            command=self.reset_cycles,
-            width=1.57 * self.button_width,
-            height=self.button_height,
-            state="disabled",  # default for startup
+        self.cycle_reset_button = self.create_button(
+            "Reset Cycles",
+            self.reset_cycles,
+            1.57 * self.button_width,
+            self.button_height,
+            state="disabled",
         )
-        self.cycle_reset_button.place(
-            x=self.start_button_x, rely=self.vertical_center + 0.42, anchor="w"
+        self.place_button(
+            self.cycle_reset_button, self.start_button_x, self.vertical_center + 0.42
         )
 
         # Skip Current Timer Button
-        self.skip_timer_button = customtkinter.CTkButton(
-            self.window,
-            text="Skip Timer",
-            font=("Courier", 36),
-            command=self.skip_timer,
-            width=1.55 * self.button_width,
-            height=self.button_height,
+        self.skip_timer_button = self.create_button(
+            "Skip Timer",
+            self.skip_timer,
+            1.55 * self.button_width,
+            self.button_height,
         )
-        self.skip_timer_button.place(
-            x=self.start_button_x + 1.65 * self.button_width,
-            rely=self.vertical_center + 0.42,
-            anchor="w",
+        self.place_button(
+            self.skip_timer_button,
+            self.start_button_x + 1.65 * self.button_width,
+            self.vertical_center + 0.42,
         )
+
+    def setup_main_area(self):
+        self.calculate_content_dimensions()
+        self.setup_timer_display()
+        self.setup_timer_state_label()
+        self.create_and_place_buttons()
 
     def update_scrollregion(self, event=None):
         self.sidebar_canvas.configure(scrollregion=self.sidebar_canvas.bbox("all"))
@@ -570,49 +575,55 @@ class FocusModeApp:
             else:
                 self.reset_button.configure(state="disabled")
 
+    # ---------------------------------------------------------------------------------------#
+
+    # ---------------------- one funtion divided ---------------------------------------#
     def update_timer_state_label(self):
         self.current_cycle_len = len(str(self.timer.current_cycle))
         self.timer_state_char_width = 0.009
 
         if self.timer.on_break:
-            if self.timer.time_left == self.timer.long_break:
-                self.timer_state_label.place(
-                    relx=0.4832
-                    + self.timer_state_char_width * (self.current_cycle_len - 1),
-                    x=(self.sidebar_width / 2),
-                    rely=0.2,
-                    anchor="center",
-                )
-                self.timer_state_label.configure(
-                    text=f"Long Break | Cycle: {self.timer.current_cycle}"
-                )
-            else:
-                self.timer_state_label.place(
-                    relx=0.475
-                    + self.timer_state_char_width * (self.current_cycle_len - 1),
-                    x=(self.sidebar_width / 2),
-                    rely=0.2,
-                    anchor="center",
-                )
-                self.timer_state_label.configure(
-                    text=f"Short Break | Cycle: {self.timer.current_cycle}"
-                )
+            self.update_timer_state_label_for_break()
         else:
-            self.timer_state_label.place(
-                relx=0.4925
-                + self.timer_state_char_width * (self.current_cycle_len - 1),
-                x=(self.sidebar_width / 2),
-                rely=0.2,
-                anchor="center",
-            )
-            self.timer_state_label.configure(
-                text=f"Work Time | Cycle: {self.timer.current_cycle}"
-            )
+            self.update_timer_state_label_for_work()
 
+        self.update_cycle_reset_button()
+
+    def update_timer_state_label_for_break(self):
+        if self.timer.time_left == self.timer.long_break:
+            relx = 0.4832 + self.timer_state_char_width * (self.current_cycle_len - 1)
+            text = f"Long Break | Cycle: {self.timer.current_cycle}"
+        else:
+            relx = 0.475 + self.timer_state_char_width * (self.current_cycle_len - 1)
+            text = f"Short Break | Cycle: {self.timer.current_cycle}"
+
+        self.place_timer_state_label(relx)
+
+        self.timer_state_label.configure(text=text)
+
+    def update_timer_state_label_for_work(self):
+        relx = 0.4925 + self.timer_state_char_width * (self.current_cycle_len - 1)
+        text = f"Work Time | Cycle: {self.timer.current_cycle}"
+
+        self.place_timer_state_label(relx)
+
+        self.timer_state_label.configure(text=text)
+
+    def place_timer_state_label(self, relx):
+        self.timer_state_label.place(
+            relx=relx,
+            x=(self.sidebar_width / 2),
+            rely=0.2,
+            anchor="center",
+        )
+
+    def update_cycle_reset_button(self):
         if self.timer.current_cycle <= 1 and not self.timer.on_break:
             self.cycle_reset_button.configure(state="disabled")
         else:
             self.cycle_reset_button.configure(state="normal")
+
+    # --------------------------------------------------------------------------------------------#
 
     def update_ui_for_timer_transition(self):
         # Updates the UI when the timer transitions from one type of timer to another
