@@ -77,7 +77,7 @@ class FocusModeApp:
             self.window.iconphoto(True, icon_image)
 
     def initialize_ui(self):
-        # Configure and initialize the user interface.
+        # Configure and initialize the UI.
 
         # Configure main window
         self.window.title("Focus Mode")
@@ -93,7 +93,7 @@ class FocusModeApp:
         self.setup_sidebar()
         self.setup_main_area()
 
-        # Define behavior on window close
+        # Behavior on window close
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # Update scroll region and timer display
@@ -277,6 +277,8 @@ class FocusModeApp:
         self.create_sidebar_widgets()
         self.sidebar_frame.bind("<Configure>", self.update_scrollregion)
 
+
+
     def calculate_content_dimensions(self):
         self.window_width = self.window.winfo_width()
         self.content_width = self.window_width - self.sidebar_width
@@ -336,7 +338,7 @@ class FocusModeApp:
         # Stop Button
         self.stop_button = self.create_button(
             "Stop",
-            self.stop_timer,
+            lambda: self.stop_timer(playnoise=True),
             self.button_width,
             self.button_height,
             state="disabled",
@@ -401,7 +403,7 @@ class FocusModeApp:
 
     def on_closing(self):
         if tkinter.messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.stop_timer()
+            self.stop_timer(playnoise=True)
             self.save_settings(self.current_settings)  # Save settings before closing
             self.window.destroy()  # Close the application window
 
