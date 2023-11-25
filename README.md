@@ -1,5 +1,5 @@
 # Focus Mode
-A desktop Pomodoro Timer focused application designed to boost productivity by utilizing the Pomodoro technique with many customizable settings such as relaxing background noise, interface, timer settings, and more. The goal of the app is to support students with focus issues or ADHD by helping them stay on track and progress.
+A desktop Pomodoro Timer-focused application designed to boost productivity by utilizing the Pomodoro technique with many customizable settings such as relaxing background noise, interface, timer settings, and more. The app aims to support students with focus issues or ADHD by helping them stay on track and progress.
 
 
 ### Installation
